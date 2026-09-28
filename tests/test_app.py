@@ -63,3 +63,13 @@ def test_exports(client):
     assert csv.status_code == 200 and csv.text.startswith("ticket_id,")
     xlsx = client.get("/api/report.xlsx")
     assert xlsx.status_code == 200 and xlsx.content[:2] == b"PK"
+
+
+def test_cached_responses_are_keyed_by_filters(client):
+    from serviceops.app import cache
+
+    a = client.get("/api/overview", params={"category": "Printing"}).json()
+    b = client.get("/api/overview", params={"category": "Security"}).json()
+    again = client.get("/api/overview", params={"category": "Printing"}).json()
+    assert a == again and a != b
+    assert "/api/overview?category=Printing" in cache.items

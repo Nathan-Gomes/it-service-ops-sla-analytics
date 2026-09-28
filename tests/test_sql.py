@@ -94,3 +94,20 @@ def test_analyst_queries_run(db):
     assert len(statements) == 7
     for sql in statements:
         assert db.query(sql), sql[:60]
+
+
+def test_materialized_table_matches_the_view(db):
+    cols = "ticket_id, sla_state, breached, sla_scored, response_met, response_scored, hop_bucket"
+    view = db.query(f"SELECT {cols} FROM vw_ticket_sla ORDER BY ticket_id")
+    table = db.query(f"SELECT {cols} FROM ticket_sla ORDER BY ticket_id")
+    assert view == table
+
+
+def test_watchlist_bands_cover_the_open_backlog(db):
+    w = q.watchlist(db, q.Filters(), limit=1000)
+    open_now = db.query("SELECT COUNT(*) AS n FROM tickets WHERE is_resolved = 0")[0]["n"]
+    assert sum(w["counts"].values()) == len(w["rows"]) == open_now
+    used = [r["target_used_pct"] for r in w["rows"]]
+    assert used == sorted(used, reverse=True)
+    assert w["counts"]["Breached"] == db.query(
+        "SELECT open_breached FROM vw_kpi_summary")[0]["open_breached"]

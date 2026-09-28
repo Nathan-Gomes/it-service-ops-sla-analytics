@@ -151,12 +151,12 @@ function columnChart(rows, { x, y, label, fill = color(1), fmtY = fmt.int, tipRo
   const iw = W - m.l - m.r; const ih = H - m.t - m.b;
   const step = iw / Math.max(rows.length, 1); const bw = Math.max(2, Math.min(28, step - 2));
   const sy = (v) => m.t + ih - (v / max) * ih;
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(label)}">`;
   for (const t of ticks(0, max)) s += `<line class="gridline" x1="${m.l}" x2="${W - m.r}" y1="${sy(t)}" y2="${sy(t)}"/><text class="tick" x="${m.l - 8}" y="${sy(t) + 3.5}" text-anchor="end">${fmtY(t)}</text>`;
   rows.forEach((r, i) => {
     const cx = m.l + step * i + step / 2; const top = sy(r[y]); const h = m.t + ih - top;
     if (h > 0) s += `<path d="M${cx - bw / 2},${m.t + ih} v${-Math.max(h - 3, 0)} q0,-3 3,-3 h${bw - 6} q3,0 3,3 v${Math.max(h - 3, 0)} z" fill="${fill}"/>`;
-    s += `<rect class="hit" data-tip="${i}" tabindex="0" x="${m.l + step * i}" y="${m.t}" width="${step}" height="${ih}" aria-label="${esc(xLabel(r[x]))}: ${esc(fmtY(r[y]))}"/>`;
+    s += `<rect role="img" class="hit" data-tip="${i}" tabindex="0" x="${m.l + step * i}" y="${m.t}" width="${step}" height="${ih}" aria-label="${esc(xLabel(r[x]))}: ${esc(fmtY(r[y]))}"/>`;
     if (i % every === 0) s += `<text class="tick" x="${cx}" y="${H - 8}" text-anchor="middle">${esc(xLabel(r[x]))}</text>`;
   });
   s += `<line class="axis" x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}"/></svg>`;
@@ -172,7 +172,7 @@ function lineChart(xs, series, { label, fmtY = fmt.int, yMin = 0, yMax, ref, xLa
   const iw = W - m.l - m.r; const ih = H - m.t - m.b;
   const sx = (i) => m.l + (xs.length < 2 ? iw / 2 : (i / (xs.length - 1)) * iw);
   const sy = (v) => m.t + ih - ((v - lo) / (hi - lo)) * ih;
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(label)}">`;
   for (const t of ticks(lo, hi)) s += `<line class="gridline" x1="${m.l}" x2="${W - m.r}" y1="${sy(t)}" y2="${sy(t)}"/><text class="tick" x="${m.l - 8}" y="${sy(t) + 3.5}" text-anchor="end">${fmtY(t)}</text>`;
   xs.forEach((x, i) => { if (i % every === 0) s += `<text class="tick" x="${sx(i)}" y="${H - 8}" text-anchor="middle">${esc(xLabel(x))}</text>`; });
   if (ref) s += `<line class="ref" x1="${m.l}" x2="${W - m.r}" y1="${sy(ref.value)}" y2="${sy(ref.value)}"/><text class="ref-label" x="${W - m.r}" y="${sy(ref.value) - 5}" text-anchor="end">${esc(ref.label)}</text>`;
@@ -186,7 +186,7 @@ function lineChart(xs, series, { label, fmtY = fmt.int, yMin = 0, yMax, ref, xLa
   }
   s += `<line class="axis" x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}"/>`;
   s += `<line class="cross" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" visibility="hidden"/><g class="dots"></g>`;
-  s += `<rect class="hit overlay" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" tabindex="0" aria-label="${esc(label)}. Use arrow keys to read values."/></svg>`;
+  s += `<rect role="img" class="hit overlay" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" tabindex="0" aria-label="${esc(label)}. Use arrow keys to read values."/></svg>`;
   const bind = (root) => {
     const svg = root.querySelector('svg'); const overlay = svg.querySelector('.overlay');
     const cross = svg.querySelector('.cross'); const dots = svg.querySelector('.dots');
@@ -225,7 +225,7 @@ function hbarChart(rows, series, { label, fmtX = fmt.pct, max, highlight = new S
   const H = m.t + m.b + rows.length * rowH;
   const hi = max ?? niceMax(Math.max(...rows.flatMap((r) => series.map((s) => r[s.key] || 0)), 1));
   const iw = W - m.l - m.r; const sx = (v) => (v / hi) * iw;
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">`;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(label)}">`;
   rows.forEach((r, i) => {
     const y0 = m.t + i * rowH + 9;
     const strong = highlight.has(rowLabel(r));
@@ -235,7 +235,7 @@ function hbarChart(rows, series, { label, fmtX = fmt.pct, max, highlight = new S
       if (w > 0) s += `<path d="M${m.l},${y} h${Math.max(w - 3, 0)} q3,0 3,3 v${bh - 6} q0,3 -3,3 h${-Math.max(w - 3, 0)} z" fill="${ser.color}"/>`;
       s += `<text class="dlabel" x="${m.l + w + 6}" y="${y + bh - 2}">${esc(fmtX(r[ser.key]))}</text>`;
     });
-    s += `<rect class="hit" data-tip="${i}" tabindex="0" x="0" y="${y0 - 6}" width="${W}" height="${rowH}" aria-label="${esc(rowLabel(r))}: ${series.map((ser) => `${ser.name} ${fmtX(r[ser.key])}`).join(', ')}"/>`;
+    s += `<rect role="img" class="hit" data-tip="${i}" tabindex="0" x="0" y="${y0 - 6}" width="${W}" height="${rowH}" aria-label="${esc(rowLabel(r))}: ${series.map((ser) => `${ser.name} ${fmtX(r[ser.key])}`).join(', ')}"/>`;
   });
   s += `<line class="axis" x1="${m.l}" x2="${m.l}" y1="${m.t}" y2="${H - m.b}"/></svg>`;
   return {
@@ -246,21 +246,24 @@ function hbarChart(rows, series, { label, fmtX = fmt.pct, max, highlight = new S
 
 // Category x priority heatmap, sequential blue with printed values.
 function heatmap(rows, cats, prios, { label, width = 720, labelWidth = 168 }) {
-  const W = width; const cellH = 34; const m = { t: 30, r: 4, b: 4, l: labelWidth };
+  const W = width; const cellH = 34; const compact = W < 480;
+  const m = { t: 30, r: 4, b: 4, l: compact ? Math.min(labelWidth, 122) : labelWidth };
   const cw = (W - m.l - m.r) / prios.length; const H = m.t + m.b + cats.length * cellH;
   const byKey = new Map(rows.map((r) => [`${r.category}|${r.priority}`, r]));
   const max = Math.max(...rows.map((r) => r.breach_rate_pct || 0), 1);
   const step = (v) => (v == null ? 0 : v < max * 0.25 ? 0 : v < max * 0.5 ? 1 : v < max * 0.75 ? 2 : 3);
-  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(label)}">`;
-  prios.forEach((p, j) => { s += `<text class="tick" x="${m.l + cw * j + cw / 2}" y="${m.t - 12}" text-anchor="middle">${esc(p)}</text>`; });
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(label)}">`;
+  const codes = Object.fromEntries((state.meta?.priorities || []).map((p) => [p.name, p.code]));
+  const short = cw < 76; // full names collide in narrow columns: fall back to P1-P4
+  prios.forEach((p, j) => { s += `<text class="tick" x="${m.l + cw * j + cw / 2}" y="${m.t - 12}" text-anchor="middle">${esc(short ? `${codes[p] || p}` : p)}</text>`; });
   cats.forEach((c, i) => {
     const y = m.t + i * cellH;
-    s += `<text class="dlabel" x="${m.l - 12}" y="${y + cellH / 2 + 4}" text-anchor="end" font-family="var(--sans)">${esc(c)}</text>`;
+    s += `<text class="dlabel" x="${m.l - 10}" y="${y + cellH / 2 + 4}" text-anchor="end" font-family="var(--sans)"${compact ? ' font-size="10.5"' : ''}>${esc(c)}</text>`;
     prios.forEach((p, j) => {
       const r = byKey.get(`${c}|${p}`); const v = r?.breach_rate_pct; const k = step(v);
       s += `<rect x="${m.l + cw * j + 1}" y="${y + 1}" width="${cw - 2}" height="${cellH - 2}" rx="3" fill="var(--seq-${k})"/>`;
-      s += `<text x="${m.l + cw * j + cw / 2}" y="${y + cellH / 2 + 4}" text-anchor="middle" font-size="11.5" fill="var(--seq-ink-${k})">${v == null ? '–' : fmt.pct(v)}</text>`;
-      s += `<rect class="hit" data-tip="${c}|${p}" tabindex="0" x="${m.l + cw * j}" y="${y}" width="${cw}" height="${cellH}" aria-label="${esc(c)}, ${esc(p)}: ${v == null ? 'no tickets' : fmt.pct(v)}"/>`;
+      s += `<text x="${m.l + cw * j + cw / 2}" y="${y + cellH / 2 + 4}" text-anchor="middle" font-size="${compact ? 10 : 11.5}" fill="var(--seq-ink-${k})">${v == null ? '–' : fmt.pct(v)}</text>`;
+      s += `<rect role="img" class="hit" data-tip="${c}|${p}" tabindex="0" x="${m.l + cw * j}" y="${y}" width="${cw}" height="${cellH}" aria-label="${esc(c)}, ${esc(p)}: ${v == null ? 'no tickets' : fmt.pct(v)}"/>`;
     });
   });
   s += '</svg>';
@@ -364,6 +367,20 @@ function panel(title, sub, body, { flush = false, tools = '' } = {}) {
   return `<section class="panel"><div class="panel-head"><div><h2>${title}</h2>${sub ? `<p>${sub}</p>` : ''}</div>${tools}</div><div class="panel-body ${flush ? 'flush' : ''}">${body}</div></section>`;
 }
 
+const BAND_PILL = { Breached: 'critical', 'At risk': 'warning', 'On track': 'good' };
+function watchlistPanel(w) {
+  const c = w.counts;
+  const summary = `<span class="pill critical">${ICON.critical}${fmt.int(c.Breached)} past target</span> <span class="pill warning">${ICON.warning}${fmt.int(c['At risk'])} at risk (${w.at_risk_pct}%+ of target used)</span> <span class="pill good">${ICON.good}${fmt.int(c['On track'])} on track</span>`;
+  const rows = w.rows.map((r) => {
+    const used = Math.min(r.target_used_pct, 200);
+    return `<tr><td class="mono">${esc(r.ticket_id)}</td><td>${esc(r.priority)}</td><td>${esc(r.category)}<div class="muted">${esc(r.subcategory)}</div></td><td>${esc(r.assignment_group)}<div class="muted">${esc(r.assigned_agent)}</div></td><td>${r.wait_reason ? esc(r.wait_reason) : '<span class="muted">–</span>'}</td><td class="num">${fmt.hours(r.elapsed_hours)}<div class="muted">target ${fmt.hours(r.resolution_target_hours)}</div></td><td class="num"><div class="bar-cell">${r.target_used_pct >= 200 ? `${Math.round(r.target_used_pct / 100)}× target` : fmt.pct(r.target_used_pct, 0)}<i class="used ${BAND_PILL[r.band]}" style="width:${Math.round(used * 0.4)}px"></i></div></td><td><span class="pill ${BAND_PILL[r.band]}">${ICON[BAND_PILL[r.band]]}${esc(r.band)}</span></td></tr>`;
+  }).join('');
+  const body = w.rows.length ? `<div class="tools" style="padding:0 18px 12px">${summary}</div><div class="table-wrap"><table><thead><tr><th>Ticket</th><th>Priority</th><th>Category</th><th>Owner</th><th>Waiting on</th><th class="num">Open for</th><th class="num">Target used</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></div>`
+    : '<div class="empty">No open tickets match these filters.</div>';
+  const more = c.Breached + c['At risk'] + c['On track'] - w.rows.length;
+  return panel('Watch list: open tickets by share of target used', `Most overdue first. A ticket is flagged at ${w.at_risk_pct}% of its target so the owner can act before it breaches.${more > 0 ? ` Showing the top ${w.rows.length} of ${fmt.int(w.rows.length + more)}; the Tickets view lists the rest.` : ''}`, body, { flush: true });
+}
+
 async function viewOverview(root) {
   const d = await api('overview');
   if (!d.kpis.total_tickets) { root.innerHTML = '<div class="empty">No tickets match these filters.</div>'; return; }
@@ -404,6 +421,7 @@ async function viewOverview(root) {
       ${panel('Open backlog', 'Tickets still open at the end of each day (running total of opened minus resolved), smoothed over 7 days.', backlog.html)}
       ${panel('Age of the open backlog', `At the snapshot, ${fmt.int(d.kpis.open_backlog)} tickets were open and ${fmt.int(d.kpis.open_breached)} of them already past target.`, aging.html + dataTable([['age_band', 'Age', false], ['open_tickets', 'Open', true, fmt.int], ['already_breached', 'Past target', true, fmt.int]], d.aging))}
     </div>
+    <div class="section-gap">${watchlistPanel(d.watchlist)}</div>
     <div class="section-gap">${panel('Performance against each priority target', 'Response and resolution targets in calendar hours, 24x7.', `<div class="table-wrap"><table><thead><tr><th>Priority</th><th class="num">Response target</th><th class="num">Resolution target</th><th class="num">Tickets</th><th class="num">Breaches</th><th class="num">Avg resolution</th><th class="num">Response on time</th><th class="num">Resolution SLA</th></tr></thead><tbody>${prioRows}</tbody></table></div>`, { flush: true })}</div>`;
   const panels = root.querySelectorAll('.chart');
   vol.bind(panels[0].parentElement); comp.bind(panels[1].parentElement);

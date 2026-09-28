@@ -32,3 +32,25 @@ jobs:
           node-version: "22"
       - name: Dashboard script parses
         run: node --check src/serviceops/static/app.js
+
+  accessibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: pip install -e '.[dev]'
+      - run: npm install --no-save --no-audit --no-fund axe-core@4
+      - name: Build and start the app
+        run: |
+          serviceops build --no-reports
+          uvicorn serviceops.app:app --port 8000 > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://localhost:8000/api/health > /dev/null && exit 0; sleep 1; done
+          cat server.log; exit 1
+      - name: axe audit of every view in both themes
+        run: python scripts/a11y_audit.py --axe node_modules/axe-core/axe.min.js --base http://localhost:8000

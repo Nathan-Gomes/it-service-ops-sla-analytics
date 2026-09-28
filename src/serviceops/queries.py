@@ -1,4 +1,4 @@
-"""Filtered analytical queries over vw_ticket_sla.
+"""Filtered analytical queries over ticket_sla, the materialized output of vw_ticket_sla.
 
 The views in sql/views.sql answer the unfiltered questions for Excel and Power BI. The
 dashboard needs the same measures under any filter, so these queries apply the same SLA
@@ -13,6 +13,7 @@ import numpy as np
 
 from .db import Database
 
+SLA = "ticket_sla"  # materialized vw_ticket_sla (see db.materialize)
 COMPLIANCE = "ROUND(100.0 * SUM(sla_scored - breached) / NULLIF(SUM(sla_scored), 0), 2)"
 RESPONSE = "ROUND(100.0 * SUM(response_met) / NULLIF(SUM(response_scored), 0), 2)"
 BREACH_RATE = "ROUND(100.0 * SUM(breached) / NULLIF(SUM(sla_scored), 0), 2)"
@@ -63,10 +64,10 @@ def kpis(db: Database, f: Filters) -> dict:
                ROUND(100.0 * SUM(CASE WHEN reassignment_count > 0 THEN 1 ELSE 0 END)
                      / NULLIF(COUNT(*), 0), 2) AS reassigned_pct,
                ROUND(100.0 * SUM(reopened) / NULLIF(COUNT(*), 0), 2) AS reopened_pct
-        FROM vw_ticket_sla{w}""", a)[0]
+        FROM {SLA}{w}""", a)[0]
     w2, a2 = f.where(extra=["is_resolved = 1"])
     hours = [r["elapsed_hours"] for r in db.query(
-        f"SELECT elapsed_hours FROM vw_ticket_sla{w2}", a2)]
+        f"SELECT elapsed_hours FROM {SLA}{w2}", a2)]
     row["median_resolution_hours"] = percentile(hours, 50)
     row["p90_resolution_hours"] = percentile(hours, 90)
     return row
@@ -78,7 +79,7 @@ def monthly(db: Database, f: Filters) -> list[dict]:
         SELECT opened_month, COUNT(*) AS tickets_opened, SUM(breached) AS sla_breaches,
                {COMPLIANCE} AS sla_compliance_pct, {AVG_RES} AS avg_resolution_hours,
                {RESPONSE} AS response_compliance_pct
-        FROM vw_ticket_sla{w} GROUP BY opened_month ORDER BY opened_month""", a)
+        FROM {SLA}{w} GROUP BY opened_month ORDER BY opened_month""", a)
 
 
 def backlog(db: Database, f: Filters) -> list[dict]:
@@ -92,9 +93,9 @@ def backlog(db: Database, f: Filters) -> list[dict]:
     rows = db.query(f"""
         WITH flow AS (
             SELECT opened_date AS flow_date, COUNT(*) AS opened, 0 AS resolved
-            FROM vw_ticket_sla{w} GROUP BY opened_date
+            FROM {SLA}{w} GROUP BY opened_date
             UNION ALL
-            SELECT resolved_date, 0, COUNT(*) FROM vw_ticket_sla{w_res} GROUP BY resolved_date
+            SELECT resolved_date, 0, COUNT(*) FROM {SLA}{w_res} GROUP BY resolved_date
         ), daily AS (
             SELECT flow_date, SUM(opened) AS opened, SUM(resolved) AS resolved
             FROM flow GROUP BY flow_date
@@ -116,7 +117,7 @@ def aging(db: Database, f: Filters) -> list[dict]:
                    ELSE 'Over 30 days' END"""
     rows = {r["age_band"]: r for r in db.query(
         f"SELECT {band} AS age_band, COUNT(*) AS open_tickets, SUM(breached) AS already_breached"
-        f" FROM vw_ticket_sla{w} GROUP BY {band}", a)}
+        f" FROM {SLA}{w} GROUP BY {band}", a)}
     order = ["Under 1 day", "1-3 days", "3-7 days", "7-30 days", "Over 30 days"]
     return [rows.get(b, {"age_band": b, "open_tickets": 0, "already_breached": 0})
             for b in order]
@@ -129,7 +130,7 @@ def by_priority(db: Database, f: Filters) -> list[dict]:
                response_target_hours, COUNT(*) AS tickets, SUM(breached) AS breaches,
                {COMPLIANCE} AS sla_compliance_pct, {RESPONSE} AS response_compliance_pct,
                {AVG_RES} AS avg_resolution_hours
-        FROM vw_ticket_sla{w}
+        FROM {SLA}{w}
         GROUP BY priority, priority_code, priority_order, resolution_target_hours,
                  response_target_hours
         ORDER BY priority_order""", a)
@@ -140,7 +141,7 @@ def pareto(db: Database, f: Filters, column: str = "category") -> list[dict]:
     rows = db.query(f"""
         SELECT {column} AS label, COUNT(*) AS tickets, SUM(breached) AS breaches,
                {BREACH_RATE} AS breach_rate_pct, {AVG_RES} AS avg_resolution_hours
-        FROM vw_ticket_sla{w} GROUP BY {column}
+        FROM {SLA}{w} GROUP BY {column}
         ORDER BY SUM(breached) DESC, {column}""", a)
     total_t = sum(r["tickets"] for r in rows) or 1
     total_b = sum(r["breaches"] or 0 for r in rows) or 1
@@ -160,7 +161,7 @@ def matrix(db: Database, f: Filters) -> list[dict]:
     return db.query(f"""
         SELECT category, priority, priority_order, COUNT(*) AS tickets,
                SUM(breached) AS breaches, {BREACH_RATE} AS breach_rate_pct
-        FROM vw_ticket_sla{w} GROUP BY category, priority, priority_order""", a)
+        FROM {SLA}{w} GROUP BY category, priority, priority_order""", a)
 
 
 def drivers(db: Database, f: Filters, categories: list[str]) -> list[dict]:
@@ -170,7 +171,7 @@ def drivers(db: Database, f: Filters, categories: list[str]) -> list[dict]:
     return db.query(f"""
         SELECT category, waited_on_third_party, hop_bucket, COUNT(*) AS tickets,
                SUM(breached) AS breaches, {BREACH_RATE} AS breach_rate_pct
-        FROM vw_ticket_sla{w}
+        FROM {SLA}{w}
         GROUP BY category, waited_on_third_party, hop_bucket
         ORDER BY category, waited_on_third_party, hop_bucket""", a)
 
@@ -181,7 +182,7 @@ def subcategories(db: Database, f: Filters, categories: list[str]) -> list[dict]
     return db.query(f"""
         SELECT category, subcategory, COUNT(*) AS tickets, SUM(breached) AS breaches,
                {BREACH_RATE} AS breach_rate_pct, {AVG_RES} AS avg_resolution_hours
-        FROM vw_ticket_sla{w} GROUP BY category, subcategory
+        FROM {SLA}{w} GROUP BY category, subcategory
         ORDER BY SUM(breached) DESC""", a)
 
 
@@ -192,7 +193,7 @@ def groups(db: Database, f: Filters) -> list[dict]:
                SUM(breached) AS breaches, {COMPLIANCE} AS sla_compliance_pct,
                {AVG_RES} AS avg_resolution_hours,
                ROUND(AVG(reassignment_count), 2) AS avg_reassignments
-        FROM vw_ticket_sla{w} GROUP BY assignment_group ORDER BY COUNT(*) DESC""", a)
+        FROM {SLA}{w} GROUP BY assignment_group ORDER BY COUNT(*) DESC""", a)
 
 
 def agents(db: Database, f: Filters) -> list[dict]:
@@ -201,7 +202,7 @@ def agents(db: Database, f: Filters) -> list[dict]:
         SELECT assigned_agent, assignment_group, COUNT(*) AS tickets,
                SUM(1 - is_resolved) AS open_tickets, SUM(breached) AS breaches,
                {COMPLIANCE} AS sla_compliance_pct, {AVG_RES} AS avg_resolution_hours
-        FROM vw_ticket_sla{w} GROUP BY assigned_agent, assignment_group
+        FROM {SLA}{w} GROUP BY assigned_agent, assignment_group
         ORDER BY assignment_group, assigned_agent""", a)
 
 
@@ -223,10 +224,10 @@ def tickets(db: Database, f: Filters, *, state: str | None = None, search: str |
         extra.append("(ticket_id LIKE ? OR subcategory LIKE ? OR assigned_agent LIKE ?)")
         params.extend([f"%{search}%"] * 3)
     w, a = f.where(extra=extra, params=params)
-    total = db.query(f"SELECT COUNT(*) AS n FROM vw_ticket_sla{w}", a)[0]["n"]
+    total = db.query(f"SELECT COUNT(*) AS n FROM {SLA}{w}", a)[0]["n"]
     col = sort if sort in SORTABLE else "opened_at"
     order = f"{col} {'DESC' if descending else 'ASC'}, ticket_id"
-    rows = db.query(f"SELECT {TICKET_FIELDS} FROM vw_ticket_sla{w} ORDER BY {order} "
+    rows = db.query(f"SELECT {TICKET_FIELDS} FROM {SLA}{w} ORDER BY {order} "
                     f"LIMIT {int(limit)} OFFSET {int(offset)}", a)
     return {"total": total, "rows": rows}
 
@@ -236,8 +237,8 @@ def what_if(db: Database, f: Filters, categories: list[str]) -> dict:
     marks = ", ".join("?" * len(categories))
     w_in, a_in = f.where(extra=[f"category IN ({marks})"], params=categories)
     w_out, a_out = f.where(extra=[f"category NOT IN ({marks})"], params=categories)
-    q = "SELECT COALESCE(SUM(sla_scored), 0) AS scored, COALESCE(SUM(breached), 0) AS breaches " \
-        "FROM vw_ticket_sla"
+    q = ("SELECT COALESCE(SUM(sla_scored), 0) AS scored, COALESCE(SUM(breached), 0) AS breaches "
+         f"FROM {SLA}")
     inside = db.query(q + w_in, a_in)[0]
     rest = db.query(q + w_out, a_out)[0]
     scored = inside["scored"] + rest["scored"]
@@ -254,3 +255,24 @@ def what_if(db: Database, f: Filters, categories: list[str]) -> dict:
         "focus_breach_rate_pct": round(100 * inside["breaches"] / inside["scored"], 2)
         if inside["scored"] else None,
     }
+
+
+AT_RISK_PCT = 75.0  # share of the SLA target at which an open ticket is flagged
+
+
+def watchlist(db: Database, f: Filters, limit: int = 12) -> dict:
+    """Open tickets ranked by how much of their resolution target they have used."""
+    w, a = f.where(extra=["is_resolved = 0"])
+    used = "ROUND(100.0 * elapsed_hours / resolution_target_hours, 1)"
+    rows = db.query(f"""
+        SELECT ticket_id, opened_at, priority, category, subcategory, assignment_group,
+               assigned_agent, wait_reason, elapsed_hours, resolution_target_hours,
+               {used} AS target_used_pct
+        FROM {SLA}{w}
+        ORDER BY {used} DESC, ticket_id""", a)
+    for r in rows:
+        pct = r["target_used_pct"]
+        r["band"] = "Breached" if pct > 100 else "At risk" if pct >= AT_RISK_PCT else "On track"
+    counts = {band: sum(r["band"] == band for r in rows)
+              for band in ("Breached", "At risk", "On track")}
+    return {"counts": counts, "at_risk_pct": AT_RISK_PCT, "rows": rows[:limit]}

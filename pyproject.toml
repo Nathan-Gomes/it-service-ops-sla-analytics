@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["httpx>=0.27", "pytest>=8.0", "ruff>=0.6"]
+dev = ["httpx>=0.27", "pytest>=8.0", "ruff>=0.6", "websocket-client>=1.7"]
 mysql = ["PyMySQL>=1.1"]
 
 [project.scripts]

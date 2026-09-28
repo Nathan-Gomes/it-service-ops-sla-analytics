@@ -120,8 +120,8 @@ def load(db: Database, result: QualityResult, run_id: str = "initial") -> None:
         cur.execute("SET FOREIGN_KEY_CHECKS = 0")
         for view in re.findall(r"CREATE VIEW (\w+)", read_sql("views.sql")):
             cur.execute(f"DROP VIEW IF EXISTS {view}")
-        for table in ["dq_quarantine", "dq_check_results", "tickets", "service_category",
-                      "sla_policy"]:
+        for table in ["ticket_sla", "dq_quarantine", "dq_check_results", "tickets",
+                      "service_category", "sla_policy"]:
             cur.execute(f"DROP TABLE IF EXISTS {table}")
         cur.execute("SET FOREIGN_KEY_CHECKS = 1")
         db.conn.commit()
@@ -145,3 +145,18 @@ def load(db: Database, result: QualityResult, run_id: str = "initial") -> None:
                    [(r["ticket_id"], r["dq_reason"], json.dumps({c: r[c] for c in raw_cols}))
                     for r in q.to_dict("records")])
     db.execute_script(read_sql("views.sql"))
+    materialize(db)
+
+
+def materialize(db: Database) -> None:
+    """Snapshot vw_ticket_sla into an indexed table for the dashboard's filtered queries.
+
+    The view stays the single definition of the SLA rules; the table is its output at load
+    time, so interactive filters do not re-evaluate the join and CASE logic on every request.
+    """
+    db.execute_script("""
+        CREATE TABLE ticket_sla AS SELECT * FROM vw_ticket_sla;
+        CREATE INDEX ix_sla_opened ON ticket_sla (opened_date);
+        CREATE INDEX ix_sla_category ON ticket_sla (category, priority);
+        CREATE INDEX ix_sla_state ON ticket_sla (sla_state);
+    """)

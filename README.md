@@ -2,7 +2,7 @@
 
 **An analytics platform for a service desk: 50,000 simulated tickets pass through an automated data-quality gate into MySQL/SQLite reporting views, then out to a live dashboard, an Excel report and a Power BI model that monitor volume, backlog, resolution time and SLA compliance.**
 
-[Open the dashboard](https://service-ops-sla.onrender.com) · [Read the case study](https://www.nathan-gomes.com/Project-Service-Ops-SLA.dc.html) · [Methodology](docs/METHODOLOGY.md) · [API reference](https://service-ops-sla.onrender.com/api/docs) · [Excel report](reports/service_ops_sla_report.xlsx)
+[Open the dashboard](https://service-ops-sla.onrender.com) · [Read the case study](https://www.nathan-gomes.com/Project-Service-Ops-SLA.dc.html) · [Methodology](docs/METHODOLOGY.md) · [Data dictionary](docs/DATA_DICTIONARY.md) · [API reference](https://service-ops-sla.onrender.com/api/docs) · [Excel report](reports/service_ops_sla_report.xlsx)
 
 [![Tests](https://github.com/Nathan-Gomes/it-service-ops-sla-analytics/actions/workflows/test.yml/badge.svg)](https://github.com/Nathan-Gomes/it-service-ops-sla-analytics/actions/workflows/test.yml)
 
@@ -103,7 +103,7 @@ dashboard's filtered queries and an independent pandas recomputation to the same
 
 | View | What it shows |
 |---|---|
-| **Overview** | KPI strip (tickets, SLA and first-response compliance against the 90% goal, median and 90th-percentile resolution, backlog, reassignment), monthly volume, monthly compliance, daily backlog, backlog age, performance by priority |
+| **Overview** | KPI strip (tickets, SLA and first-response compliance against the 90% goal, median and 90th-percentile resolution, backlog, reassignment), monthly volume, monthly compliance, daily backlog, backlog age, a watch list of open tickets by share of target used (flagged at 75%), performance by priority |
 | **Breach analysis** | Generated finding, share of tickets vs share of breaches, category × priority breach-rate heatmap, Pareto table, wait and hand-off drivers for the two focus queues, worst subcategories, recommendations |
 | **Queues & agents** | Resolver group workload and compliance, agent scorecard |
 | **Data quality** | Gate totals, every check with its rule, action and examples, the quarantine with raw records, repairs applied |
@@ -111,7 +111,12 @@ dashboard's filtered queries and an independent pandas recomputation to the same
 
 One filter bar (period, category, priority, group, site, channel) drives every view and lives in
 the URL, so a filtered view can be shared as a link. Every chart has a hover or keyboard tooltip
-and a table view, and there are light and dark themes.
+and a table view, and there are light and dark themes. Every view passes an axe accessibility
+audit in both themes in CI.
+
+Filtered queries read `ticket_sla`, an indexed snapshot of `vw_ticket_sla` taken at load, and
+responses are cached per filter set (the data only changes on a rebuild), with the default views
+computed at start-up so the first visitor after a cold start does not wait.
 
 ![Tickets](docs/assets/tickets.png)
 
@@ -156,8 +161,8 @@ reports/            committed Excel report, quality report and findings
 tests/              simulation, quality gate, SQL parity, findings, API, MySQL 8
 ```
 
-CI runs lint, the full suite against SQLite **and a MySQL 8 service container**, and a complete
-MySQL build on every push.
+CI runs lint, the full suite against SQLite **and a MySQL 8 service container**, a complete
+MySQL build, and an axe accessibility audit of every view in both themes on every push.
 
 ## Limits
 

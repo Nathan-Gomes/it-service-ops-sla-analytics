@@ -6,6 +6,9 @@ import io
 import json
 import os
 import threading
+from collections import OrderedDict
+from collections.abc import Callable
+from contextlib import asynccontextmanager
 from functools import lru_cache
 from pathlib import Path
 
@@ -23,7 +26,17 @@ STATIC = Path(__file__).parent / "static"
 OUT = Path(os.environ.get("SERVICEOPS_OUTPUT", DEFAULT_OUT))
 DB_PATH = OUT / "serviceops.db"
 
-app = FastAPI(title="IT Service Ops & SLA Analytics", version="1.0.0",
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Build the database and answer the default views in the background, so the first
+    # visitor after a cold start does not wait for a free instance to run every query.
+    threading.Thread(target=warm, daemon=True).start()
+    yield
+
+
+app = FastAPI(title="IT Service Ops & SLA Analytics", version="1.0.0", lifespan=lifespan,
               docs_url="/api/docs", redoc_url=None, openapi_url="/api/openapi.json")
 app.mount("/assets", StaticFiles(directory=STATIC), name="assets")
 
@@ -58,6 +71,49 @@ def database() -> Database:
         return Database(f"sqlite:///{DB_PATH}")
 
 
+class ResponseCache:
+    """LRU of computed responses keyed by endpoint and query string.
+
+    The data only changes when the pipeline rebuilds, which restarts the process, so a
+    response never goes stale while it is cached.
+    """
+
+    def __init__(self, size: int = 256):
+        self.size = size
+        self.items: OrderedDict[str, object] = OrderedDict()
+        self.lock = threading.Lock()
+
+    def get(self, key: str, compute: Callable[[], object]):
+        with self.lock:
+            if key in self.items:
+                self.items.move_to_end(key)
+                return self.items[key]
+        value = compute()
+        with self.lock:
+            self.items[key] = value
+            while len(self.items) > self.size:
+                self.items.popitem(last=False)
+        return value
+
+
+cache = ResponseCache()
+
+
+def cache_key(request: Request) -> str:
+    params = sorted(request.query_params.multi_items())
+    return request.url.path + "?" + "&".join(f"{k}={v}" for k, v in params)
+
+
+def warm() -> None:
+    try:
+        cache.get("/api/meta?", meta_data)
+        cache.get("/api/overview?", lambda: overview_data(q.Filters()))
+        cache.get("/api/breaches?", lambda: breaches_data(q.Filters()))
+        cache.get("/api/quality?", quality_data)
+    except Exception:  # a failed warm-up only means the first request computes it
+        pass
+
+
 def quality_report() -> dict:
     return json.loads((OUT / "quality_report.json").read_text())
 
@@ -88,8 +144,7 @@ def health() -> dict:
             "commit": os.environ.get("RENDER_GIT_COMMIT", "")[:7] or None}
 
 
-@app.get("/api/meta")
-def meta() -> dict:
+def meta_data() -> dict:
     db = database()
     span = db.query("SELECT MIN(opened_date) AS first, MAX(opened_date) AS last FROM tickets")[0]
 
@@ -109,15 +164,14 @@ def meta() -> dict:
     }
 
 
-@app.get("/api/overview")
-def overview(f: q.Filters = FilterDep) -> dict:
+def overview_data(f: q.Filters) -> dict:
     db = database()
     return {"kpis": q.kpis(db, f), "monthly": q.monthly(db, f), "backlog": q.backlog(db, f),
-            "aging": q.aging(db, f), "priority": q.by_priority(db, f), "groups": q.groups(db, f)}
+            "aging": q.aging(db, f), "priority": q.by_priority(db, f), "groups": q.groups(db, f),
+            "watchlist": q.watchlist(db, f)}
 
 
-@app.get("/api/breaches")
-def breaches(f: q.Filters = FilterDep) -> dict:
+def breaches_data(f: q.Filters) -> dict:
     db = database()
     out = findings(db, f)
     top = out.get("top_categories") or []
@@ -129,13 +183,7 @@ def breaches(f: q.Filters = FilterDep) -> dict:
     return out
 
 
-@app.get("/api/agents")
-def agents(f: q.Filters = FilterDep) -> list[dict]:
-    return q.agents(database(), f)
-
-
-@app.get("/api/quality")
-def quality() -> dict:
+def quality_data() -> dict:
     db = database()
     report = quality_report()
     report["quarantine"] = db.query(
@@ -146,6 +194,31 @@ def quality() -> dict:
         "SELECT dq_repaired AS repair, COUNT(*) AS tickets FROM tickets WHERE dq_repaired <> '' "
         "GROUP BY dq_repaired ORDER BY COUNT(*) DESC")
     return report
+
+
+@app.get("/api/meta")
+def meta(request: Request) -> dict:
+    return cache.get(cache_key(request), meta_data)
+
+
+@app.get("/api/overview")
+def overview(request: Request, f: q.Filters = FilterDep) -> dict:
+    return cache.get(cache_key(request), lambda: overview_data(f))
+
+
+@app.get("/api/breaches")
+def breaches(request: Request, f: q.Filters = FilterDep) -> dict:
+    return cache.get(cache_key(request), lambda: breaches_data(f))
+
+
+@app.get("/api/agents")
+def agents(request: Request, f: q.Filters = FilterDep) -> list[dict]:
+    return cache.get(cache_key(request), lambda: q.agents(database(), f))
+
+
+@app.get("/api/quality")
+def quality(request: Request) -> dict:
+    return cache.get(cache_key(request), quality_data)
 
 
 @app.get("/api/tickets")
