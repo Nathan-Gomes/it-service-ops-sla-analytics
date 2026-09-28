@@ -1,0 +1,55 @@
+// IT Service Ops & SLA Analytics: DAX measures.
+// Model: fact_ticket (many) -> dim_priority[priority], dim_category[category],
+//        dim_date[date] via fact_ticket[opened_date]. All relationships single-direction.
+// The logic mirrors sql/views.sql so Power BI, Excel and the dashboard agree to the ticket.
+
+// ---- Calculated columns on fact_ticket --------------------------------------------------
+Target Hours = RELATED ( dim_priority[resolution_target_hours] )
+Response Target Hours = RELATED ( dim_priority[response_target_hours] )
+Breached = IF ( fact_ticket[elapsed_hours] > fact_ticket[Target Hours], 1, 0 )
+// Open tickets still inside target are not scored: their outcome is unknown.
+Scored = IF ( fact_ticket[is_resolved] = 0 && fact_ticket[Breached] = 0, 0, 1 )
+Response Met =
+    IF ( NOT ISBLANK ( fact_ticket[response_hours] )
+         && fact_ticket[response_hours] <= fact_ticket[Response Target Hours], 1, 0 )
+Response Scored =
+    IF ( ISBLANK ( fact_ticket[response_hours] )
+         && fact_ticket[elapsed_hours] <= fact_ticket[Response Target Hours], 0, 1 )
+
+// ---- Measures -----------------------------------------------------------------------------
+Tickets = COUNTROWS ( fact_ticket )
+Open Backlog = CALCULATE ( [Tickets], fact_ticket[is_resolved] = 0 )
+SLA Breaches = SUM ( fact_ticket[Breached] )
+SLA Compliance % =
+    DIVIDE ( SUM ( fact_ticket[Scored] ) - [SLA Breaches], SUM ( fact_ticket[Scored] ) )
+Response Compliance % =
+    DIVIDE ( SUM ( fact_ticket[Response Met] ), SUM ( fact_ticket[Response Scored] ) )
+Breach Rate % = DIVIDE ( [SLA Breaches], SUM ( fact_ticket[Scored] ) )
+Median Resolution (h) =
+    CALCULATE ( MEDIAN ( fact_ticket[elapsed_hours] ), fact_ticket[is_resolved] = 1 )
+P90 Resolution (h) =
+    CALCULATE ( PERCENTILE.INC ( fact_ticket[elapsed_hours], 0.9 ), fact_ticket[is_resolved] = 1 )
+Reassigned % = DIVIDE ( CALCULATE ( [Tickets], fact_ticket[reassignment_count] > 0 ), [Tickets] )
+SLA Goal % = 0.90
+Compliance vs Goal = [SLA Compliance %] - [SLA Goal %]
+
+// Pareto: share of all breaches (ignores the category filter on the visual)
+Share of Breaches % =
+    DIVIDE ( [SLA Breaches], CALCULATE ( [SLA Breaches], ALL ( dim_category ) ) )
+Share of Tickets % = DIVIDE ( [Tickets], CALCULATE ( [Tickets], ALL ( dim_category ) ) )
+Cumulative Breach Share % =
+    VAR current = [SLA Breaches]
+    VAR ranked =
+        FILTER ( ALL ( dim_category[category] ),
+                 CALCULATE ( [SLA Breaches] ) >= current )
+    RETURN DIVIDE ( SUMX ( ranked, CALCULATE ( [SLA Breaches] ) ),
+                    CALCULATE ( [SLA Breaches], ALL ( dim_category ) ) )
+
+// Backlog at the end of each day on dim_date (use with dim_date[date] on the axis)
+Backlog EOD =
+    VAR d = MAX ( dim_date[date] )
+    RETURN
+        CALCULATE ( [Tickets],
+            REMOVEFILTERS ( dim_date ),
+            fact_ticket[opened_date] <= d,
+            OR ( ISBLANK ( fact_ticket[resolved_date] ), fact_ticket[resolved_date] > d ) )

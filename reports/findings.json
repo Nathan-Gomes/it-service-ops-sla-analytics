@@ -1,0 +1,181 @@
+{
+  "kpis": {
+    "total_tickets": 49480,
+    "open_backlog": 50,
+    "open_breached": 28,
+    "sla_breaches": 6492,
+    "sla_compliance_pct": 86.87,
+    "response_compliance_pct": 89.95,
+    "avg_resolution_hours": 30.23,
+    "reassigned_pct": 32.98,
+    "reopened_pct": 3.62,
+    "median_resolution_hours": 11.72,
+    "p90_resolution_hours": 46.41
+  },
+  "pareto": [
+    {
+      "label": "Access & Identity",
+      "tickets": 9424,
+      "breaches": 2083,
+      "breach_rate_pct": 22.11,
+      "avg_resolution_hours": 36.0,
+      "share_of_volume_pct": 19.05,
+      "share_of_breaches_pct": 32.09,
+      "cumulative_share_pct": 32.09,
+      "breach_rank": 1
+    },
+    {
+      "label": "Network & VPN",
+      "tickets": 7344,
+      "breaches": 1890,
+      "breach_rate_pct": 25.75,
+      "avg_resolution_hours": 35.56,
+      "share_of_volume_pct": 14.84,
+      "share_of_breaches_pct": 29.11,
+      "cumulative_share_pct": 61.2,
+      "breach_rank": 2
+    },
+    {
+      "label": "Software",
+      "tickets": 9239,
+      "breaches": 727,
+      "breach_rate_pct": 7.87,
+      "avg_resolution_hours": 27.53,
+      "share_of_volume_pct": 18.67,
+      "share_of_breaches_pct": 11.2,
+      "cumulative_share_pct": 72.4,
+      "breach_rank": 3
+    },
+    {
+      "label": "Hardware",
+      "tickets": 6503,
+      "breaches": 652,
+      "breach_rate_pct": 10.03,
+      "avg_resolution_hours": 27.5,
+      "share_of_volume_pct": 13.14,
+      "share_of_breaches_pct": 10.04,
+      "cumulative_share_pct": 82.44,
+      "breach_rank": 4
+    },
+    {
+      "label": "Email & Collaboration",
+      "tickets": 6691,
+      "breaches": 403,
+      "breach_rate_pct": 6.02,
+      "avg_resolution_hours": 25.81,
+      "share_of_volume_pct": 13.52,
+      "share_of_breaches_pct": 6.21,
+      "cumulative_share_pct": 88.65,
+      "breach_rank": 5
+    },
+    {
+      "label": "Onboarding",
+      "tickets": 4157,
+      "breaches": 341,
+      "breach_rate_pct": 8.21,
+      "avg_resolution_hours": 29.86,
+      "share_of_volume_pct": 8.4,
+      "share_of_breaches_pct": 5.25,
+      "cumulative_share_pct": 93.9,
+      "breach_rank": 6
+    },
+    {
+      "label": "Security",
+      "tickets": 2314,
+      "breaches": 207,
+      "breach_rate_pct": 8.95,
+      "avg_resolution_hours": 27.77,
+      "share_of_volume_pct": 4.68,
+      "share_of_breaches_pct": 3.19,
+      "cumulative_share_pct": 97.09,
+      "breach_rank": 7
+    },
+    {
+      "label": "Printing",
+      "tickets": 3808,
+      "breaches": 189,
+      "breach_rate_pct": 4.97,
+      "avg_resolution_hours": 26.53,
+      "share_of_volume_pct": 7.7,
+      "share_of_breaches_pct": 2.91,
+      "cumulative_share_pct": 100.0,
+      "breach_rank": 8
+    }
+  ],
+  "top_categories": [
+    "Access & Identity",
+    "Network & VPN"
+  ],
+  "top_share_of_breaches_pct": 61.2,
+  "top_share_of_volume_pct": 33.89,
+  "headline": "Access & Identity and Network & VPN carry 34% of ticket volume but 61% of SLA breaches.",
+  "focus": [
+    {
+      "category": "Access & Identity",
+      "resolver_group": "Identity & Access",
+      "wait_reason": "Awaiting manager approval",
+      "breaches": 2083,
+      "breach_rate_waited_pct": 49.7,
+      "breach_rate_no_wait_pct": 13.6,
+      "share_of_breaches_waited_pct": 52.8,
+      "breach_rate_0_hops_pct": 17.0,
+      "breach_rate_2plus_hops_pct": 33.5,
+      "share_of_breaches_2plus_hops_pct": 31.2,
+      "top_subcategory": {
+        "category": "Access & Identity",
+        "subcategory": "MFA enrolment",
+        "tickets": 1907,
+        "breaches": 447,
+        "breach_rate_pct": 23.45,
+        "avg_resolution_hours": 35.71
+      }
+    },
+    {
+      "category": "Network & VPN",
+      "resolver_group": "Network Operations",
+      "wait_reason": "Awaiting carrier / vendor",
+      "breaches": 1890,
+      "breach_rate_waited_pct": 60.3,
+      "breach_rate_no_wait_pct": 18.2,
+      "share_of_breaches_waited_pct": 42.1,
+      "breach_rate_0_hops_pct": 19.5,
+      "breach_rate_2plus_hops_pct": 39.0,
+      "share_of_breaches_2plus_hops_pct": 34.0,
+      "top_subcategory": {
+        "category": "Network & VPN",
+        "subcategory": "Firewall rule request",
+        "tickets": 1530,
+        "breaches": 402,
+        "breach_rate_pct": 26.29,
+        "avg_resolution_hours": 35.41
+      }
+    }
+  ],
+  "what_if": {
+    "current_compliance_pct": 86.87,
+    "what_if_compliance_pct": 92.3,
+    "breaches_avoided": 2682,
+    "rest_breach_rate_pct": 7.7,
+    "focus_breach_rate_pct": 23.71
+  },
+  "recommendations": [
+    {
+      "title": "Take manager approval off the critical path for access requests",
+      "evidence": "52.8% of Access & Identity breaches sat waiting on approval. Tickets that waited breached 49.7% of the time, against 13.6% for those that did not.",
+      "action": "Publish pre-approved, role-based access bundles for the common requests, and send an automatic reminder to the approver at 50% of the SLA with escalation to their delegate at 75%.",
+      "owner": "Identity & Access lead"
+    },
+    {
+      "title": "Route connectivity tickets straight to Network Operations",
+      "evidence": "Network & VPN tickets that changed hands two or more times breached 39.0% of the time, against 19.5% when the first group kept them; carrier waits pushed the rate to 60.3%.",
+      "action": "Add portal and email routing rules that send VPN, Wi-Fi and site outage tickets to Network Operations on creation, and agree a response-time clause with the carrier so vendor waits have a contractual ceiling.",
+      "owner": "Network Operations manager"
+    },
+    {
+      "title": "Watch the two queues with an at-risk alert",
+      "evidence": "If Access & Identity and Network & VPN breached at the rest of the desk's rate (7.7%), about 2,682 breaches would not have happened and compliance would rise from 86.87% to 92.3%.",
+      "action": "Alert the resolver group when a ticket in either category reaches 75% of its target, and review both queues weekly until their breach rate is within two points of the desk average.",
+      "owner": "Service desk manager"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+name: Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: it_service_ops
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -proot"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      SERVICEOPS_MYSQL_URL: mysql://root:root@127.0.0.1:3306/it_service_ops
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e '.[dev,mysql]'
+      - run: ruff check src tests scripts
+      - name: pytest (SQLite and MySQL 8)
+        run: python -m pytest -q
+      - name: Full build against MySQL 8
+        run: serviceops build --db "$SERVICEOPS_MYSQL_URL" --out /tmp/mysql-build --no-reports
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Dashboard script parses
+        run: node --check src/serviceops/static/app.js

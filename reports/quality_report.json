@@ -1,0 +1,228 @@
+{
+  "rows_in": 50950,
+  "rows_clean": 49480,
+  "rows_quarantined": 520,
+  "rows_removed": 950,
+  "rows_repaired": 3200,
+  "checks": [
+    {
+      "id": "U1",
+      "dimension": "Uniqueness",
+      "name": "Exact duplicate rows",
+      "rule": "The same row exported more than once",
+      "action": "removed",
+      "rows": 600,
+      "examples": [
+        "INC1026528",
+        "INC1028127",
+        "INC1018888",
+        "INC1040502",
+        "INC1028583"
+      ]
+    },
+    {
+      "id": "U2",
+      "dimension": "Uniqueness",
+      "name": "Superseded ticket versions",
+      "rule": "Same ticket id exported twice; keep the most recently updated copy",
+      "action": "removed",
+      "rows": 350,
+      "examples": [
+        "INC1000065",
+        "INC1000369",
+        "INC1000527",
+        "INC1000572",
+        "INC1000587"
+      ]
+    },
+    {
+      "id": "C1",
+      "dimension": "Consistency",
+      "name": "Non-standard category label",
+      "rule": "Legacy or free-text category mapped to the canonical taxonomy",
+      "action": "repaired",
+      "rows": 1900,
+      "examples": [
+        "Outlook",
+        "Hardware Issue",
+        "Password",
+        "network",
+        "IAM"
+      ]
+    },
+    {
+      "id": "C2",
+      "dimension": "Consistency",
+      "name": "Non-standard priority label",
+      "rule": "P1-P4, numbered and abbreviated priorities mapped to the SLA policy",
+      "action": "repaired",
+      "rows": 900,
+      "examples": [
+        "P4",
+        "med",
+        "low",
+        "P4",
+        "1 - Critical"
+      ]
+    },
+    {
+      "id": "M1",
+      "dimension": "Completeness",
+      "name": "Missing category",
+      "rule": "Category inferred from the subcategory, which belongs to exactly one category",
+      "action": "repaired",
+      "rows": 180,
+      "examples": [
+        "INC1034428",
+        "INC1040257",
+        "INC1035572",
+        "INC1016721",
+        "INC1002847"
+      ]
+    },
+    {
+      "id": "M2",
+      "dimension": "Completeness",
+      "name": "Missing assignment group",
+      "rule": "Group restored from the routing rule for the ticket's category",
+      "action": "repaired",
+      "rows": 220,
+      "examples": [
+        "INC1033510",
+        "INC1015144",
+        "INC1022990",
+        "INC1048929",
+        "INC1002097"
+      ]
+    },
+    {
+      "id": "M3",
+      "dimension": "Completeness",
+      "name": "Missing priority",
+      "rule": "No priority means no SLA target, so the ticket cannot be scored",
+      "action": "quarantined",
+      "rows": 140,
+      "examples": [
+        "INC1029143",
+        "INC1035790",
+        "INC1033128",
+        "INC1031188",
+        "INC1010234"
+      ]
+    },
+    {
+      "id": "M4",
+      "dimension": "Completeness",
+      "name": "Missing opened time",
+      "rule": "Without an opened time the SLA clock has no start",
+      "action": "quarantined",
+      "rows": 25,
+      "examples": [
+        "INC1020890",
+        "INC1014875",
+        "INC1003073",
+        "INC1003995",
+        "INC1027998"
+      ]
+    },
+    {
+      "id": "C3",
+      "dimension": "Consistency",
+      "name": "Unmappable classification",
+      "rule": "Category, priority or status outside the taxonomy after repair",
+      "action": "quarantined",
+      "rows": 0,
+      "examples": []
+    },
+    {
+      "id": "V1",
+      "dimension": "Validity",
+      "name": "Opened after the export",
+      "rule": "Opened time later than the snapshot it was exported in",
+      "action": "quarantined",
+      "rows": 15,
+      "examples": [
+        "INC1049977",
+        "INC1049398",
+        "INC1048509",
+        "INC1049924",
+        "INC1049982"
+      ]
+    },
+    {
+      "id": "V2",
+      "dimension": "Validity",
+      "name": "Resolved before opened",
+      "rule": "Resolved time earlier than opened time",
+      "action": "quarantined",
+      "rows": 120,
+      "examples": [
+        "INC1020546",
+        "INC1015550",
+        "INC1021880",
+        "INC1021218",
+        "INC1030256"
+      ]
+    },
+    {
+      "id": "V3",
+      "dimension": "Validity",
+      "name": "Responded before opened",
+      "rule": "First response earlier than opened time",
+      "action": "quarantined",
+      "rows": 60,
+      "examples": [
+        "INC1033456",
+        "INC1014574",
+        "INC1012344",
+        "INC1015951",
+        "INC1035939"
+      ]
+    },
+    {
+      "id": "V4",
+      "dimension": "Validity",
+      "name": "Closed before resolved",
+      "rule": "Closed time earlier than resolved time",
+      "action": "quarantined",
+      "rows": 50,
+      "examples": [
+        "INC1026637",
+        "INC1032028",
+        "INC1034607",
+        "INC1031932",
+        "INC1043706"
+      ]
+    },
+    {
+      "id": "V5",
+      "dimension": "Validity",
+      "name": "Resolved status without a resolved time",
+      "rule": "Status says Resolved or Closed but the resolved time is blank",
+      "action": "quarantined",
+      "rows": 70,
+      "examples": [
+        "INC1049910",
+        "INC1049820",
+        "INC1049493",
+        "INC1049889",
+        "INC1049851"
+      ]
+    },
+    {
+      "id": "V6",
+      "dimension": "Validity",
+      "name": "Open status with a resolved time",
+      "rule": "Status says the ticket is still active but it carries a resolved time",
+      "action": "quarantined",
+      "rows": 40,
+      "examples": [
+        "INC1049962",
+        "INC1049847",
+        "INC1049841",
+        "INC1049873",
+        "INC1049867"
+      ]
+    }
+  ]
+}

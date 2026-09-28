@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "serviceops"
+version = "1.0.0"
+description = "IT service operations and SLA analytics: ticket simulation, data-quality gate, SQL reporting views and a dashboard"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.115",
+  "numpy>=1.26",
+  "openpyxl>=3.1",
+  "pandas>=2.2",
+  "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = ["httpx>=0.27", "pytest>=8.0", "ruff>=0.6"]
+mysql = ["PyMySQL>=1.1"]
+
+[project.scripts]
+serviceops = "serviceops.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient` is deprecated"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "RUF"]
+# FastAPI declares query parameters as Query(...) defaults.
+ignore = ["B008"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+serviceops = ["static/*", "sql/*.sql"]
