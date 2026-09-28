@@ -121,7 +121,7 @@ and a table view, and there are light and dark themes.
 pip install -e '.[dev]'
 serviceops build          # simulate → gate → SQLite → Excel + Power BI export (about 3 s)
 serviceops serve          # http://localhost:8000
-python -m pytest -q       # 47 tests
+python -m pytest -q       # 56 tests; the 9 MySQL ones need SERVICEOPS_MYSQL_URL
 ```
 
 Load MySQL 8 instead of SQLite (the same schema and views):
