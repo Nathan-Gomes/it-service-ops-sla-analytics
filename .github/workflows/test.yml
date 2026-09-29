@@ -16,8 +16,8 @@ jobs:
     env:
       SERVICEOPS_MYSQL_URL: mysql://root:root@127.0.0.1:3306/it_service_ops
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
@@ -27,7 +27,7 @@ jobs:
         run: python -m pytest -q
       - name: Full build against MySQL 8
         run: serviceops build --db "$SERVICEOPS_MYSQL_URL" --out /tmp/mysql-build --no-reports
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - name: Dashboard script parses
@@ -36,12 +36,12 @@ jobs:
   accessibility:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
       - run: pip install -e '.[dev]'
