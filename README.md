@@ -81,7 +81,7 @@ injected into known tickets, the tests assert that **each check finds exactly th
 | Consistency | non-standard category and priority labels | repaired (2,800) |
 | Completeness | category inferred from subcategory; group from routing rule | repaired (400) |
 | Completeness | missing priority or opened time | quarantined (165) |
-| Validity | opened after export, resolved/responded before opened, closed before resolved, status contradicts timestamps | quarantined (355) |
+| Validity | malformed timestamps or counters, impossible event order, status contradicts timestamps | quarantined (355) |
 
 ![Data quality](docs/assets/quality.png)
 

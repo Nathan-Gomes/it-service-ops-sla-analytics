@@ -160,6 +160,10 @@ def run_quality_gate(raw: pd.DataFrame, snapshot: str = SNAPSHOT) -> QualityResu
     # 4. Validity: timelines ------------------------------------------------------------------
     ts = {c: pd.to_datetime(df[c].replace("", None), errors="coerce") for c in TIMESTAMPS}
     snap = pd.Timestamp(snapshot)
+
+    invalid_timestamp = pd.Series(False, index=df.index)
+    for column in TIMESTAMPS:
+        invalid_timestamp |= df[column].ne("") & ts[column].isna()
     resolved_status = df["status"].isin(RESOLVED_STATUSES)
 
     rules = [
@@ -173,7 +177,7 @@ def run_quality_gate(raw: pd.DataFrame, snapshot: str = SNAPSHOT) -> QualityResu
          ts["closed_at"] < ts["resolved_at"]),
         ("V5", "Resolved status without a resolved time",
          "Status says Resolved or Closed but the resolved time is blank",
-         resolved_status & ts["resolved_at"].isna()),
+         resolved_status & df["resolved_at"].eq("")),
         ("V6", "Open status with a resolved time",
          "Status says the ticket is still active but it carries a resolved time",
          ~resolved_status & ts["resolved_at"].notna()),
@@ -182,11 +186,27 @@ def run_quality_gate(raw: pd.DataFrame, snapshot: str = SNAPSHOT) -> QualityResu
         mask = mask.reindex(df.index, fill_value=False)
         quarantine(mask, Check(cid, "Validity", name, rule, "quarantined"))
 
+    quarantine(invalid_timestamp.reindex(df.index, fill_value=False),
+               Check("V7", "Validity", "Malformed timestamp",
+                     "A populated timestamp must parse as a date and time", "quarantined"))
+
+    reassignment_count = pd.to_numeric(df["reassignment_count"], errors="coerce")
+    invalid_reassignments = (reassignment_count.isna() | reassignment_count.lt(0)
+                             | reassignment_count.mod(1).ne(0))
+    quarantine(invalid_reassignments,
+               Check("V8", "Validity", "Invalid reassignment count",
+                     "Reassignment count must be a non-negative integer", "quarantined"))
+
+    reopened = pd.to_numeric(df["reopened"], errors="coerce")
+    quarantine(~reopened.isin([0, 1]),
+               Check("V9", "Validity", "Invalid reopened flag",
+                     "Reopened must be encoded as 0 or 1", "quarantined"))
+
     clean = df.copy()
     for c in TIMESTAMPS:
         clean[c] = ts[c].loc[clean.index]
-    clean["reassignment_count"] = pd.to_numeric(clean["reassignment_count"]).astype(int)
-    clean["reopened"] = pd.to_numeric(clean["reopened"]).astype(int)
+    clean["reassignment_count"] = reassignment_count.loc[clean.index].astype(int)
+    clean["reopened"] = reopened.loc[clean.index].astype(int)
     clean["dq_repaired"] = repaired.loc[clean.index]
     clean = clean.sort_values("opened_at").reset_index(drop=True)
 

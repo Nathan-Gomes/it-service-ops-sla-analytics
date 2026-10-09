@@ -82,3 +82,36 @@ def test_whitespace_and_case_drift_is_caught():
     assert out.clean.loc[0, "category"] == "Network & VPN"
     assert out.clean.loc[0, "priority"] == "High"
     assert out.clean.loc[0, "dq_repaired"] == "category relabelled; priority relabelled"
+
+
+def valid_raw_ticket() -> dict[str, str]:
+    return {
+        "ticket_id": "INC1", "opened_at": "2025-01-01 09:00:00",
+        "first_response_at": "2025-01-01 09:15:00",
+        "resolved_at": "2025-01-01 10:00:00", "closed_at": "",
+        "updated_at": "2025-01-01 10:00:00", "status": "Resolved",
+        "priority": "High", "category": "Network & VPN",
+        "subcategory": "Slow connection", "assignment_group": "Network Operations",
+        "assigned_agent": "G. Novak", "channel": "Portal", "department": "Sales",
+        "site": "Toronto", "reassignment_count": "0", "reopened": "0",
+        "wait_reason": "",
+    }
+
+
+@pytest.mark.parametrize(("field", "value", "check_id"), [
+    ("opened_at", "not-a-date", "V7"),
+    ("updated_at", "2025-14-40", "V7"),
+    ("reassignment_count", "two", "V8"),
+    ("reassignment_count", "-1", "V8"),
+    ("reassignment_count", "1.5", "V8"),
+    ("reopened", "2", "V9"),
+])
+def test_malformed_metrics_are_quarantined(field, value, check_id):
+    ticket = valid_raw_ticket()
+    ticket[field] = value
+
+    out = run_quality_gate(pd.DataFrame([ticket]))
+
+    assert out.clean.empty
+    assert out.quarantine.loc[0, "ticket_id"] == "INC1"
+    assert next(check for check in out.checks if check.id == check_id).rows == 1

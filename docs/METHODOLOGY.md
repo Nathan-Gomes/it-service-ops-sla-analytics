@@ -56,6 +56,7 @@ removes, repairs or quarantines; nothing is silently dropped.
 | M3–M4 | Completeness | Blank priority (no SLA target) or blank opened time (no clock start) | quarantined |
 | C3 | Consistency | Any label still outside the taxonomy after repair | quarantined |
 | V1–V6 | Validity | Opened after the snapshot; resolved/responded before opened; closed before resolved; status and resolved time disagree | quarantined |
+| V7–V9 | Validity | Malformed timestamps; invalid reassignment counts; reopened flags outside 0 or 1 | quarantined |
 
 Repairs are recorded on the ticket (`dq_repaired`), so any number can be traced back to the rows
 that were fixed. The quarantine keeps the raw record and the reason, which is the list a service
