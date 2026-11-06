@@ -4,7 +4,8 @@
 name: Keep the app warm
 on:
   schedule:
-    - cron: "*/10 11-23 * * *"   # every ten minutes, 07:00-19:00 Eastern
+    - cron: "*/10 7-19 * * *"
+      timezone: "America/Toronto"
   workflow_dispatch:
 jobs:
   ping:
