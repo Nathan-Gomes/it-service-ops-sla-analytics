@@ -54,6 +54,9 @@ def test_tickets_paging_sorting_and_search(client):
     assert hours == sorted(hours, reverse=True) and page["total"] == 49_480
     hit = client.get("/api/tickets", params={"search": "INC1000001"}).json()
     assert hit["total"] == 1
+    for literal_wildcard in ("%", "_"):
+        result = client.get("/api/tickets", params={"search": literal_wildcard}).json()
+        assert result["total"] == 0
     breached = client.get("/api/tickets", params={"state": "Breached", "limit": 5}).json()
     assert all(r["sla_state"] == "Breached" for r in breached["rows"])
 

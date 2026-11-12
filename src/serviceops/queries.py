@@ -221,8 +221,12 @@ def tickets(db: Database, f: Filters, *, state: str | None = None, search: str |
         extra.append("sla_state = ?")
         params.append(state)
     if search:
-        extra.append("(ticket_id LIKE ? OR subcategory LIKE ? OR assigned_agent LIKE ?)")
-        params.extend([f"%{search}%"] * 3)
+        extra.append(
+            "(ticket_id LIKE ? ESCAPE '!' OR subcategory LIKE ? ESCAPE '!' "
+            "OR assigned_agent LIKE ? ESCAPE '!')"
+        )
+        escaped = search.replace("!", "!!").replace("%", "!%").replace("_", "!_")
+        params.extend([f"%{escaped}%"] * 3)
     w, a = f.where(extra=extra, params=params)
     total = db.query(f"SELECT COUNT(*) AS n FROM {SLA}{w}", a)[0]["n"]
     col = sort if sort in SORTABLE else "opened_at"
