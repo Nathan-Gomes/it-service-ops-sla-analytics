@@ -222,7 +222,7 @@ def quality(request: Request) -> dict:
 
 
 @app.get("/api/tickets")
-def tickets(f: q.Filters = FilterDep, state: str | None = None, search: str | None = None,
+def tickets(f: q.Filters = FilterDep, state: q.SlaState | None = None, search: str | None = None,
             sort: str = "opened_at", desc: bool = True,
             limit: int = Query(50, ge=1, le=500), offset: int = Query(0, ge=0)) -> dict:
     return q.tickets(database(), f, state=state, search=search, sort=sort, descending=desc,
@@ -230,7 +230,7 @@ def tickets(f: q.Filters = FilterDep, state: str | None = None, search: str | No
 
 
 @app.get("/api/tickets.csv")
-def tickets_csv(f: q.Filters = FilterDep, state: str | None = None,
+def tickets_csv(f: q.Filters = FilterDep, state: q.SlaState | None = None,
                 search: str | None = None) -> StreamingResponse:
     data = q.tickets(database(), f, state=state, search=search, limit=100_000)["rows"]
     buf = io.StringIO()

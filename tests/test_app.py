@@ -61,6 +61,13 @@ def test_tickets_paging_sorting_and_search(client):
     assert all(r["sla_state"] == "Breached" for r in breached["rows"])
 
 
+@pytest.mark.parametrize("path", ["/api/tickets", "/api/tickets.csv"])
+def test_ticket_endpoints_reject_unknown_sla_states(client, path):
+    response = client.get(path, params={"state": "Breach"})
+
+    assert response.status_code == 422
+
+
 def test_exports(client):
     csv = client.get("/api/tickets.csv", params={"category": "Printing", "priority": "Critical"})
     assert csv.status_code == 200 and csv.text.startswith("ticket_id,")

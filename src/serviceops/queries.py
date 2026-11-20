@@ -8,6 +8,7 @@ numbers.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Literal
 
 import numpy as np
 
@@ -21,7 +22,10 @@ AVG_RES = "ROUND(AVG(CASE WHEN is_resolved = 1 THEN elapsed_hours END), 2)"
 
 FILTER_COLUMNS = {"category": "category", "priority": "priority", "group": "assignment_group",
                   "site": "site", "channel": "channel", "department": "department"}
-SLA_STATES = ["Met", "Breached", "Open - breached", "Open - within SLA"]
+SlaState = Literal["Met", "Breached", "Open - breached", "Open - within SLA"]
+SLA_STATES: tuple[SlaState, ...] = (
+    "Met", "Breached", "Open - breached", "Open - within SLA",
+)
 
 
 @dataclass
